@@ -1,0 +1,134 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>{% block title %}Social Network{% endblock %}</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+        <link href="{% static 'network/styles.css' %}" rel="stylesheet">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css" type="text/css">
+        <link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css' rel='stylesheet'>
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.10.12/css/dataTables.bootstrap.min.css">
+        <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    </head>
+    <body>
+        <script>
+            function initialize_functionality() {
+
+                // Function enabling liking of posts
+                document.querySelectorAll('.like-icon').forEach(element => {
+                    
+                    element.addEventListener('click', function(event){
+                        var post_id = event.target.id;
+                        fetch(`/like/${post_id}`)
+                        .then(response => response.json())
+                        .then(data => {
+                            // Change like-icon color & count
+                            if (data.status == "like") {
+                                event.target.classList.add("like");
+                            } else {
+                                event.target.classList.remove("like");
+                            }
+                            
+                            // Adjust number of likes
+                            event.target.parentNode.children[6].innerHTML = data.totalLikes;
+                        });
+                    })
+                })
+    
+    
+                // Function enabling editing of posts
+                document.querySelectorAll('.post-edit').forEach(element => {
+    
+                    element.addEventListener('click', function(event){
+                        
+                        // hide edit button & post content
+                        const button = event.target;
+                        const post_id = event.target.id;
+                        const postParentNode = event.target.parentNode.parentNode;
+                        const postText = postParentNode.children[1].children[0];
+                        event.target.parentNode.style.display = 'none';
+                        postText.parentNode.style.display = 'none';
+    
+                        // set up edit form
+                        const editBox = document.createElement('div');
+                        editBox.innerHTML = `
+                            <form>
+                                <textarea id="text-${post_id}" class="page-element">${postText.innerHTML}</textarea>
+                                <button id="btn-${post_id}" type="button" class="btn btn-primary">Save</button><br>
+                            </form>
+                        `
+                        postParentNode.append(editBox);
+    
+                        // set event listener
+                        document.querySelector(`#btn-${post_id}`).addEventListener('click', function() {
+                            
+                            var text = document.getElementById(`text-${post_id}`).value;
+    
+                            // Run Ajax
+                            $.ajax({
+                                url: "{% url 'edit_post' %}",
+                                type: 'post',
+                                data:{
+                                    'id': post_id,
+                                    'text': text,
+                                    'csrfmiddlewaretoken':"{{csrf_token}}"
+                                },
+                                dataType: 'json',
+                                beforeSend: function() {
+                                    button.classList.add('disabled');
+                                },
+                                success:function(res) {
+                                    button.classList.remove('disabled');
+                                    editBox.remove();
+                                    event.target.parentNode.style.display = 'block';
+                                    postText.innerHTML = text;
+                                    postText.parentNode.style.display = 'block';  
+                                }   
+                            })                                 
+                        })
+                    })
+                })
+            }
+    
+            document.addEventListener('DOMContentLoaded', initialize_functionality);
+    
+        </script>    
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <a class="navbar-brand" href="#">Network</a>
+          
+            <div>
+              <ul class="navbar-nav mr-auto">
+                {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="#"><strong><span id="username">{{ user.username }}</span></strong></a>
+                    </li>
+                {% endif %}
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'index' %}">All Posts</a>
+                </li>
+                {% if user.is_authenticated %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'followPage' %}">Following</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logout' %}">Log Out</a>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}">Log In</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'register' %}">Register</a>
+                    </li>
+                {% endif %}
+              </ul>
+            </div>
+          </nav>
+        
+        <div class="body">
+            {% block body %}
+            {% endblock %}
+        </div>
+    </body>
+</html>

@@ -1,0 +1,160 @@
+{% extends "network/layout.html" %}
+
+{% block body %}
+
+    <h2 id="status">{{ status }}</h2>
+    {% if request.user.is_authenticated %}
+        <div class="page-element">
+            <h5>New Post</h5>
+            <form action="" method="POST">
+                {% csrf_token %}
+                <textarea name="post-text" class="page-element"></textarea>
+                <button type="submit" class="btn btn-primary">Post</button>
+            </form>
+        </div>
+    {% endif %}
+
+    {% if posts %}
+        <div id="posts">
+            {% for post in posts %}
+                <div class="page-element post">
+                        <h5><a href="{% url 'user' post.user %}">{{ post.user }}</a></h5>
+                    <p>
+                        <div>
+                            {% if post.user == request.user.username %}
+                                    <span class="text-blue"><a id= {{ post.id }} class="post-edit">Edit</a><br></span>
+                            {% endif %}
+                            <div><span class="post-content">{{ post.content }}</span><br></div>
+                        </div>
+                        <span class="text-grey">{{ post.timestamp }}</span><br>
+                        {% if request.user.is_authenticated %}
+                            <i id={{ post.id }} class="fa fa-heart like-icon {{ post.userLike }}"></i>
+                            <span id="like-count" class="text-grey">{{ post.likes }}</span><br>
+                        {% else %}
+                            <i id={{ post.id }} class="fa fa-heart"></i>
+                            <span id="like-count" class="text-grey">{{ post.likes }}</span><br>
+                        {% endif %}
+                    </p>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <nav aria-label="Page navigation example">
+                <ul id="pagination" class="pagination">
+                        <li id="btn-previous" class="page-item" style="display: {{ pagination.0 }};">Previous</li>
+                        <li class="page-item blue">1</li>
+                    {% for page in pages %}
+                        {% if page > 1 %}
+                            <li class="page-item">{{ page }}</li>
+                        {% endif %}
+                    {% endfor %}
+                        <li id="btn-next" class="page-item" style="display: {{ pagination.1 }};">Next</li>
+                </ul>
+    </nav>
+    {% csrf_token %}
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            
+            // Function enabling pagination on index page
+            document.querySelector("#pagination").childNodes.forEach(child => {
+                child.addEventListener('click', function(event) {
+                    
+                    // Get value
+                    var requestValue = event.target.innerHTML;
+                    var status = document.querySelector("#status").innerHTML;
+                    var _requestResult = parseInt(document.querySelector(".blue").innerHTML);
+
+                    if (requestValue == 'Previous') {
+                        if (requestValue >= 1){
+                            _requestResult = _requestResult - 1;
+                        } else {
+                            _requestResult = 1;
+                        }
+                    } else if (requestValue == 'Next') {
+                        // Check highest value
+                        var pageItem = document.querySelectorAll(".page-item");
+                        var maxItem = parseInt(pageItem[pageItem.length - 2].innerHTML);
+
+                        // Change page if possible
+                        if (_requestResult < maxItem) {
+                            _requestResult = _requestResult + 1;
+                        }
+                    } else {
+                        _requestResult = requestValue;
+                    }
+                    
+
+                    // Run Ajax
+                    $.ajax({
+                        url: "{% url 'load-more' %}",
+                        type: 'post',
+                        data:{
+                            'page': _requestResult,
+                            'status': status,
+                            'csrfmiddlewaretoken':"{{csrf_token}}"
+                        },
+                        dataType: 'json',
+                        beforeSend: function() {
+                            $("#pagination").addClass('disabled');
+                        },
+                        success:function(res){
+                            // Save data
+                            var json_data=JSON.parse(res.posts);
+                            var json_data_sorted = json_data;
+
+                            // Remove posts of the previous page
+                            var posts = document.querySelectorAll('.post');
+                            posts.forEach(element => {
+                                element.remove();
+                            })
+
+                            // Set current page mark
+                            var mark = document.querySelector(".blue");
+                            mark.classList.remove("blue");
+                            var paginator = document.querySelectorAll(".page-item");
+                            paginator.forEach(element => {
+                                if (parseInt(element.innerHTML) === parseInt(_requestResult)) {
+                                    element.classList.add("blue");
+                                }
+                            });
+                            document.querySelector('#btn-previous').style.display = res.pagination[0];
+                            document.querySelector('#btn-next').style.display = res.pagination[1];
+
+                            // Add posts of current page
+                            json_data_sorted.forEach(function(element) {
+                                const post = document.createElement('div');
+                                var options = { month: 'short', day: 'numeric', year: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric'};
+                                var rawDate = new Date(element.timestamp);
+                                var date = rawDate.toLocaleDateString("en-US", options);
+                                post.innerHTML = `
+                                <h5><a href="/user/${element.user}">${element.user}</a></h5>
+                                <p>
+                                    <div>
+                                        <span class="text-blue" style="display: ${element.edit};"><a id="${ element.id }" class="post-edit">Edit</a><br></span>
+                                        <div><span class="post-content">${element.content}</span><br></div>
+                                    </div>
+                                        <span class="text-grey">${date}</span><br>
+                                        <i id=${element.id} class="fa fa-heart like-icon ${element.userLike}"></i>
+                                        <span id="like-count" class="text-grey">${element.likes}</span><br>
+                                </p>
+                                `;
+
+                                post.classList.add('page-element');
+                                post.classList.add('post');
+
+                                document.querySelector('#posts').append(post);
+                                $("#pagination").removeClass('disabled');
+                            })
+
+                            // Set Event Listener
+                            initialize_functionality();
+                        }
+                    })
+                })
+            })   
+        });
+    </script>
+
+{% endblock %}

@@ -1,0 +1,59 @@
+.body {
+    padding: 5px;
+    width: 100%;
+}
+
+.form {
+    width: 100%;
+}
+
+.page-element {
+    width: 100%;
+    border: lightgrey 2px solid;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 5px;
+}
+
+input {
+    width: 100%;
+    border-radius: 5px;
+    border: lightgrey 2px solid;
+}
+
+.form-element {
+    width: 100%;
+}
+
+.btn {
+    margin-bottom: 5px;
+}
+
+.text-grey {
+    color: grey;
+}
+
+.text-blue {
+    color:rgb(72, 182, 225);
+}
+
+.like {
+    color: red;
+}
+
+.blue {
+    color: red;
+    font-weight: bold;
+}
+
+.page-item {
+    padding: 10px;
+    padding-top: 7.5px;
+    padding-bottom: 7.5px;
+    border: solid 1px grey;
+    border-radius: 5px;
+}
+
+.page-item:hover {
+    background-color: rgb(255, 213, 208);
+}

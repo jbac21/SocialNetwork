@@ -1,0 +1,96 @@
+{% extends "network/layout.html" %}
+
+{% block body %}
+
+    <h2 id="account">{{ account }}</h2>
+    
+    <div class="page-element">
+        <h5>Account Information</h5>
+        <p>
+            <span>Follows: {{ follows }}</span><br>
+            <span>Follower: <span id="follower">{{ follower }}</span></span>
+        </p>
+        
+        {% if user.username != account %}
+            {% csrf_token %}        
+            <button id="btn-follow" class="btn btn-primary">{{ strFollowStatus }}</button>  
+        {% endif %}
+    </div>
+
+    {% if posts %}
+        <h4>Posts:</h4>
+        <div id="posts">
+            {% for post in posts %}
+                <div class="page-element post">
+                        <h5><a href="{% url 'user' post.user %}">{{ post.user }}</a></h5>
+                    <p>
+                        <div>
+                            {% if post.user == request.user.username %}
+                                    <span class="text-blue"><a id= {{ post.id }} class="post-edit">Edit</a><br></span>
+                            {% endif %}
+                            <div><span class="post-content">{{ post.content }}</span><br></div>
+                        </div>
+                        <span class="text-grey">{{ post.timestamp }}</span><br>
+                        {% if request.user.is_authenticated %}
+                            <i id={{ post.id }} class="fa fa-heart like-icon {{ post.userLike }}"></i>
+                            <span id="like-count" class="text-grey">{{ post.likes }}</span><br>
+                        {% else %}
+                            <i id={{ post.id }} class="fa fa-heart"></i>
+                            <span id="like-count" class="text-grey">{{ post.likes }}</span><br>
+                        {% endif %}
+                    </p>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <script>
+        // Follow AJAX-Request
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelector("#btn-follow").addEventListener('click', function() {
+                // Define variables for ajax request
+                var account = document.querySelector("#account").innerHTML;
+                var user = document.querySelector("#username").innerHTML;            
+                
+                // Send ajax request
+                $.ajax({
+                    url: "{% url 'follow' %}",
+                    type: 'POST',
+                    data:{
+                        'user': user,
+                        'account': account,
+                        'csrfmiddlewaretoken':"{{ csrf_token }}"
+                    },
+                    dataType: 'json',
+                    beforeSend: function() {
+                        $("#btn-follow").addClass('disabled');
+                    },
+                    success:function(json_status){
+
+                        if (json_status.status == "follow"){
+                            // Adjust button
+                            document.querySelector("#btn-follow").innerHTML = "Unfollow";
+                            // Adjust number of followers
+                            var follower = parseInt(document.querySelector("#follower").innerHTML);
+                            follower = follower + 1;
+                            document.querySelector("#follower").innerHTML = follower;
+                            // Remove disabled class
+                            $("#btn-follow").removeClass('disabled');
+
+                        } else {
+                            // Adjust button
+                            document.querySelector("#btn-follow").innerHTML = "Follow";
+                            // Adjust number of followers
+                            var follower = parseInt(document.querySelector("#follower").innerHTML);
+                            follower = follower - 1;
+                            document.querySelector("#follower").innerHTML = follower;
+                            // Remove disabled class
+                            $("#btn-follow").removeClass('disabled');
+                        }
+                    }
+                })    
+            })
+        })
+    </script>
+
+{% endblock %}
